@@ -1,0 +1,49 @@
+# Render Blueprint — FocusBalance
+# הפצה כ-Static Site ללא backend (הכל מקומי ב-IndexedDB).
+# תיעוד: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: focusbalance
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+
+    # נעילת גרסת Node לבנייה (Vite 5 דורש Node 20+)
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+
+    # rewrite ל-SPA — כל בקשה שלא נמצאת מועברת ל-index.html
+    # כדי ש-React Router יוכל לטפל בנתיבים כמו /onboarding, /settings וכו'
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+    # כותרות אבטחה — נכון לאפליקציה ללא backend.
+    # אין צורך ב-connect-src חיצוני; הכל מקומי בדפדפן.
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: "geolocation=(), microphone=(), camera=()"
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=31536000; includeSubDomains"
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'"
+
+      # cache ארוך לקבצי build (יש להם hash בשם הקובץ)
+      - path: /assets/*
+        name: Cache-Control
+        value: "public, max-age=31536000, immutable"
