@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { isValidPositiveNumber } from '@/lib/utils';
 import {
   classifyDayStatus,
+  formatTimeHHMM,
   statusColors,
   sumAmountMg,
 } from '@/lib/doseHelpers';
@@ -217,11 +218,10 @@ interface EditProps {
 }
 
 function EditForm({ event, onCancel, onSaved }: EditProps) {
-  const initialTime = new Date(event.timestamp).toLocaleTimeString('he-IL', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  // formatTimeHHMM מבטיח "HH:MM" נקי בלי סימני כיוון נסתרים
+  // (toLocaleTimeString('he-IL', ...) יכול להכניס RLM/LRM ש"שוברים"
+  // את input[type=time] ואת Number())
+  const initialTime = formatTimeHHMM(new Date(event.timestamp));
   const [time, setTime] = useState(initialTime);
   const [amount, setAmount] = useState(String(event.amountMg));
   const [notes, setNotes] = useState(event.notes ?? '');
