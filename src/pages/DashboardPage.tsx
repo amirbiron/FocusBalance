@@ -1,15 +1,22 @@
+import { TodayCard } from '@/components/dashboard/TodayCard';
+import { StreakCard } from '@/components/dashboard/StreakCard';
+import { WeeklyChart } from '@/components/dashboard/WeeklyChart';
+import { InsightCard } from '@/components/dashboard/InsightCard';
+import { useLocalUser } from '@/hooks/useLocalUser';
+
 export function DashboardPage() {
+  const user = useLocalUser();
+
+  if (!user) {
+    return <div className="card text-slate-500">טוען…</div>;
+  }
+
   return (
     <div className="space-y-4">
-      <div className="card">
-        <h1 className="text-xl font-bold text-brand-700">היום שלך</h1>
-        <p className="mt-2 text-slate-600">
-          ברוך הבא ל-FocusBalance. כאן יוצגו המנות שלך להיום, רצף ימים ביעד, וגרף שבועי.
-        </p>
-        <p className="mt-2 text-sm text-slate-500">
-          (בקרוב — לאחר חיבור ל-DB ול-Quick Log)
-        </p>
-      </div>
+      <TodayCard user={user} />
+      <StreakCard user={user} />
+      <WeeklyChart user={user} />
+      <InsightCard user={user} />
     </div>
   );
 }

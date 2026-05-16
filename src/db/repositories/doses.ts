@@ -57,3 +57,13 @@ export async function updateDoseEvent(
   }
   await db.doseEvents.update(id, patch);
 }
+
+/** מחזיר אירועים של N הימים האחרונים כולל היום (לפי שעון מקומי) */
+export async function getRecentDays(days: number): Promise<DoseEvent[]> {
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (days - 1));
+  return getDoseEventsInRange(start.toISOString(), end.toISOString());
+}

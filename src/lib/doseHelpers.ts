@@ -61,3 +61,124 @@ export function todayTimeToIso(timeHHMM: string): string {
   d.setHours(h, m, 0, 0);
   return d.toISOString();
 }
+
+/** מצב יומי לפי היחס לסכום היעד — בלי אדום (כלל מסעיף 2 באפיון) */
+export type DayStatus = 'in-target' | 'slightly-over' | 'over' | 'empty';
+
+export function classifyDayStatus(totalMg: number, targetMg: number): DayStatus {
+  if (totalMg === 0) return 'empty';
+  if (totalMg <= targetMg) return 'in-target';
+  // קטן מ-25% מעל יעד = "מעט מעל", אחרת "מעל" (כתום, לא אדום)
+  const overRatio = (totalMg - targetMg) / targetMg;
+  return overRatio <= 0.25 ? 'slightly-over' : 'over';
+}
+
+/**
+ * צבעי מצב — לפי האפיון (סעיף 6): ירוק/צהוב/כתום, בלי אדום.
+ * החזרת קלאסים של Tailwind להחלת על Badge.
+ */
+export interface StatusColors {
+  bg: string;
+  text: string;
+  label: string;
+}
+export function statusColors(status: DayStatus): StatusColors {
+  switch (status) {
+    case 'in-target':
+      return { bg: 'bg-accent-50', text: 'text-accent-700', label: 'ביעד' };
+    case 'slightly-over':
+      return { bg: 'bg-warning-50', text: 'text-warning-600', label: 'מעט מעל' };
+    case 'over':
+      return { bg: 'bg-warm-50', text: 'text-warm-600', label: 'מעל היעד' };
+    case 'empty':
+      return { bg: 'bg-brand-50', text: 'text-slate-500', label: 'אין נטילות' };
+  }
+}
+
+/** תאריך ב-YYYY-MM-DD לפי השעון המקומי */
+export function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * מקבץ אירועי מנה לפי יום (לפי השעון המקומי).
+ * מחזיר Map מ-YYYY-MM-DD לסכום מ"ג ביום.
+ */
+export function aggregateByDay(events: DoseEvent[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const e of events) {
+    if (Number.isNaN(e.amountMg) || !Number.isFinite(e.amountMg)) continue;
+    const key = localDateKey(new Date(e.timestamp));
+    map.set(key, (map.get(key) ?? 0) + e.amountMg);
+  }
+  return map;
+}
+
+/**
+ * חישוב Streak — כמה ימים רצופים אחורנית המשתמש היה ביעד,
+ * החל מהיום או מאתמול (אם אין נטילות היום, לא קוטע את הרצף).
+ *
+ * הערה: יום ללא נטילות *לפני* היום כן מפסיק את הרצף — כי זה מעיד
+ * על חוסר תיעוד, לא על "ביעד".
+ */
+export function calculateStreak(
+  byDay: Map<string, number>,
+  targetMg: number,
+  today: Date = new Date()
+): number {
+  let streak = 0;
+  const cursor = new Date(today);
+  cursor.setHours(0, 0, 0, 0);
+
+  // אם היום ריק, לא מאפסים — מתחילים מאתמול
+  const todayKey = localDateKey(cursor);
+  const todayTotal = byDay.get(todayKey) ?? 0;
+  if (todayTotal === 0) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  // הולכים אחורה כל עוד היום ביעד (לא ריק ולא מעל)
+  while (streak < 365) {
+    const key = localDateKey(cursor);
+    const total = byDay.get(key) ?? 0;
+    if (total === 0 || total > targetMg) break;
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+/**
+ * מחזיר נתונים שבועיים — מערך של 7 ימים מ-6 ימים אחורה ועד היום.
+ */
+export interface DayBar {
+  dateKey: string;
+  label: string;
+  totalMg: number;
+}
+export function buildWeeklySeries(
+  byDay: Map<string, number>,
+  today: Date = new Date()
+): DayBar[] {
+  const days: DayBar[] = [];
+  // קיצורים ימים בעברית — start from Sunday=0
+  const WEEKDAY_HE = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - 6);
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const key = localDateKey(d);
+    days.push({
+      dateKey: key,
+      label: WEEKDAY_HE[d.getDay()] ?? '?',
+      totalMg: byDay.get(key) ?? 0,
+    });
+  }
+  return days;
+}
