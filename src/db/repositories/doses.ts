@@ -82,3 +82,22 @@ export async function getRecentDays(days: number): Promise<DoseEvent[]> {
   start.setDate(start.getDate() - (days - 1));
   return getDoseEventsInRange(start.toISOString(), end.toISOString());
 }
+
+/**
+ * מחזיר אירועים של חודש קלנדרי שלם, מסונן לפי שעון מקומי.
+ * year — שנה ארבע-ספרתית, month — אינדקס 0-11.
+ */
+export async function getDoseEventsForMonth(year: number, month: number): Promise<DoseEvent[]> {
+  const start = new Date(year, month, 1, 0, 0, 0, 0);
+  const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+  return getDoseEventsInRange(start.toISOString(), end.toISOString());
+}
+
+/** מחזיר אירועים של תאריך לוקאלי ספציפי (YYYY-MM-DD) */
+export async function getDoseEventsForDay(localDateKey: string): Promise<DoseEvent[]> {
+  const [y, m, d] = localDateKey.split('-').map(Number);
+  if (!y || m === undefined || !d) throw new Error('תאריך לא תקין');
+  const start = new Date(y, m - 1, d, 0, 0, 0, 0);
+  const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+  return getDoseEventsInRange(start.toISOString(), end.toISOString());
+}
