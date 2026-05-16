@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { InsightsPage } from './pages/InsightsPage';
@@ -8,10 +8,49 @@ import { JournalPage } from './pages/JournalPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { HelpPage } from './pages/HelpPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { OnboardingPage } from './pages/OnboardingPage';
 import { seedIfNeeded } from './db/seed';
+import { useLocalUser } from './hooks/useLocalUser';
+
+/**
+ * Guard שמכריח אונבורדינג לפני כניסה לאפליקציה.
+ * אם אין משתמש או שלא אישר disclaimer — מפנה ל-/onboarding.
+ */
+function RequireOnboarding({ children }: { children: React.ReactNode }) {
+  const user = useLocalUser();
+  const location = useLocation();
+
+  // עוד טוען מ-IndexedDB — נציג מסך ביניים
+  if (user === undefined) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center text-slate-500">
+        טוען…
+      </div>
+    );
+  }
+  if (user === null || !user.hasAcceptedDisclaimer) {
+    return <Navigate to="/onboarding" replace state={{ from: location }} />;
+  }
+  return <>{children}</>;
+}
+
+/** הפוך — אם כבר יש משתמש, אל תכנס לאונבורדינג שוב */
+function RedirectIfOnboarded({ children }: { children: React.ReactNode }) {
+  const user = useLocalUser();
+  if (user === undefined) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center text-slate-500">
+        טוען…
+      </div>
+    );
+  }
+  if (user && user.hasAcceptedDisclaimer) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
 
 export default function App() {
-  // טוען את הטריגרים ברירת-המחדל פעם אחת בהתקנה ראשונה
   const [isReady, setIsReady] = useState(false);
   useEffect(() => {
     seedIfNeeded()
@@ -31,7 +70,21 @@ export default function App() {
 
   return (
     <Routes>
-      <Route element={<AppLayout />}>
+      <Route
+        path="/onboarding"
+        element={
+          <RedirectIfOnboarded>
+            <OnboardingPage />
+          </RedirectIfOnboarded>
+        }
+      />
+      <Route
+        element={
+          <RequireOnboarding>
+            <AppLayout />
+          </RequireOnboarding>
+        }
+      >
         <Route path="/" element={<DashboardPage />} />
         <Route path="/insights" element={<InsightsPage />} />
         <Route path="/plan" element={<PlanPage />} />
