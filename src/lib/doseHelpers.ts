@@ -37,7 +37,10 @@ export function isPlannedDose(timestampIso: string, scheduledTimes: string[]): b
     const m = Number(mStr);
     if (Number.isNaN(h) || Number.isNaN(m)) continue;
     const scheduled = h * 60 + m;
-    if (Math.abs(minutes - scheduled) <= TOLERANCE_MIN) return true;
+    // הפרש מעגלי על מחוג 24 שעות — 23:50 ו-00:10 צריכים להיחשב קרובים
+    const raw = Math.abs(minutes - scheduled);
+    const delta = Math.min(raw, 1440 - raw);
+    if (delta <= TOLERANCE_MIN) return true;
   }
   return false;
 }
@@ -49,12 +52,20 @@ export function nowAsTimeString(): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** ממיר HH:MM של היום לתאריך ISO מלא */
+/**
+ * ממיר HH:MM של היום לתאריך ISO מלא.
+ * חובה לאמת טווחים — אחרת setHours יבלע ערכים פסולים (למשל 25:99)
+ * ויחזור עם תאריך משונה בלי לזרוק שגיאה.
+ */
 export function todayTimeToIso(timeHHMM: string): string {
-  const [hStr, mStr] = timeHHMM.split(':');
-  const h = Number(hStr);
-  const m = Number(mStr);
-  if (Number.isNaN(h) || Number.isNaN(m)) {
+  const parts = timeHHMM.split(':');
+  if (parts.length !== 2) throw new Error('שעה לא תקינה');
+  const h = Number(parts[0]);
+  const m = Number(parts[1]);
+  if (!Number.isInteger(h) || !Number.isInteger(m)) {
+    throw new Error('שעה לא תקינה');
+  }
+  if (h < 0 || h > 23 || m < 0 || m > 59) {
     throw new Error('שעה לא תקינה');
   }
   const d = new Date();

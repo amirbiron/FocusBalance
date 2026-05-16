@@ -7,9 +7,12 @@ export async function getLocalUser(): Promise<User | undefined> {
   return db.users.get(LOCAL_USER_ID);
 }
 
+// פורמט שעה תקני 24 שעות, בדיוק "HH:MM"
+const TIME_HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 /**
  * יוצר או מעדכן את המשתמש המקומי.
- * ולידציה לפי כלל 4 ב-CLAUDE.md — בדיקת NaN/Infinity.
+ * ולידציה לפי כלל 4 ב-CLAUDE.md — בדיקת NaN/Infinity וטווחים.
  */
 export async function upsertLocalUser(
   data: Omit<User, 'id' | 'createdAt' | 'updatedAt'>
@@ -21,6 +24,12 @@ export async function upsertLocalUser(
   for (const unit of data.unitDoses) {
     if (!isValidPositiveNumber(unit, 200)) {
       throw new Error('מינון יחידה אינו תקין');
+    }
+  }
+  // ולידציה הגנתית של פורמט שעות — גם אם ה-UI מאמת, ה-repo לא סומך
+  for (const t of data.scheduledTimes ?? []) {
+    if (typeof t !== 'string' || !TIME_HHMM.test(t)) {
+      throw new Error('שעה מתוכננת אינה בפורמט HH:MM');
     }
   }
 

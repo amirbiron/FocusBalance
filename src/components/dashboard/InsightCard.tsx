@@ -36,7 +36,11 @@ export function InsightCard({ user }: Props) {
     totalDaysWithData++;
     if (total > user.prescribedDailyDose) {
       totalOverDays++;
-      const d = new Date(key);
+      // key הוא YYYY-MM-DD; new Date(key) פורש כ-UTC ויכול לזוז יום באזורי
+      // זמן שליליים. בונים תאריך לוקאלי במפורש כדי שיום-בשבוע יתאים לתפיסה
+      // של המשתמש.
+      const [y, mo, da] = key.split('-').map(Number);
+      const d = new Date(y ?? 1970, (mo ?? 1) - 1, da ?? 1);
       const dow = d.getDay();
       overByWeekday[dow] = (overByWeekday[dow] ?? 0) + 1;
     }

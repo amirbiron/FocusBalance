@@ -77,7 +77,14 @@ export function QuickLogModal() {
     );
   };
 
-  const handleSave = async () => {
+  /**
+   * שמירת המנה. מקבל override אופציונלי לטריגרים/הערה כדי לתמוך
+   * ב-"דלג ותעד" — שם איפוס ה-state הוא אסינכרוני וה-closure של
+   * handleSave היה רואה את הערכים הישנים לפני העדכון.
+   */
+  const handleSave = async (override?: { triggerIds?: number[]; notes?: string }) => {
+    // הגנה מפני re-entrancy — לחיצה כפולה לא תיצור שתי רשומות
+    if (isSaving) return;
     if (finalAmount === null) {
       setError('יש לבחור כמות תקינה');
       setStep('how-much');
@@ -90,12 +97,15 @@ export function QuickLogModal() {
       const planned = isPlannedDose(timestamp, user.scheduledTimes);
       const exceeded = wouldExceedDailyTarget(user, todayEvents ?? [], finalAmount);
 
+      const triggerIdsToSave = override?.triggerIds ?? selectedTriggers;
+      const notesToSave = (override?.notes ?? notes).trim() || undefined;
+
       await addDoseEvent({
         timestamp,
         amountMg: finalAmount,
         isPlanned: planned,
-        triggerIds: selectedTriggers,
-        notes: notes.trim() || undefined,
+        triggerIds: triggerIdsToSave,
+        notes: notesToSave,
       });
       setDidExceed(exceeded);
       setStep('done');
@@ -294,7 +304,7 @@ export function QuickLogModal() {
             <Button variant="outline" onClick={() => setStep('how-much')} className="flex-1">
               חזרה
             </Button>
-            <Button onClick={handleSave} disabled={isSaving} className="flex-1">
+            <Button onClick={() => void handleSave()} disabled={isSaving} className="flex-1">
               {isSaving ? 'שומר…' : 'תעד מנה'}
             </Button>
           </div>
@@ -303,9 +313,11 @@ export function QuickLogModal() {
             <button
               type="button"
               onClick={() => {
+                // העברה ישירה ל-handleSave של ערכים ריקים — בלי תלות
+                // ב-setState אסינכרוני שלא היה משתקף ב-closure
                 setSelectedTriggers([]);
                 setNotes('');
-                handleSave();
+                void handleSave({ triggerIds: [], notes: '' });
               }}
               className="text-slate-500 hover:text-brand-700"
               disabled={isSaving}

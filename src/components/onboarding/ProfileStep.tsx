@@ -92,6 +92,9 @@ export function ProfileStep({ onBack, onSubmit }: Props) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'שמירת הפרופיל נכשלה';
       setErrors({ submit: msg });
+    } finally {
+      // משחררים את ה-flag גם בהצלחה — אם ניווט לא קרה מסיבה כלשהי,
+      // המשתמש לא נתקע עם טופס נעול
       setIsSaving(false);
     }
   };

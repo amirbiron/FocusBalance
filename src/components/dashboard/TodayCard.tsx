@@ -90,9 +90,11 @@ export function TodayCard({ user }: Props) {
       {/* מד התקדמות */}
       <div
         role="progressbar"
-        aria-valuenow={total}
+        // קיפוץ ל-[0, יעד] כדי שלא לחרוג מ-aria-valuemax כאשר עוברים את היעד
+        aria-valuenow={Math.min(Math.max(total, 0), user.prescribedDailyDose)}
         aria-valuemin={0}
         aria-valuemax={user.prescribedDailyDose}
+        aria-valuetext={`${total} מתוך ${user.prescribedDailyDose} מ"ג`}
         aria-label="התקדמות יומית"
         className="h-3 w-full overflow-hidden rounded-full bg-brand-50"
       >

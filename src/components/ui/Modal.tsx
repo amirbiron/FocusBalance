@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
@@ -13,20 +13,35 @@ interface Props {
  * Modal/Sheet בסיסי, נגיש.
  * - סוגר ב-Escape
  * - נועל גלילה ברקע כשפתוח
+ * - מעביר פוקוס פנימה בפתיחה, ומחזיר לכפתור הקודם בסגירה
  * - במובייל: bottom sheet; במסכים רחבים: ממורכז
  */
 export function Modal({ isOpen, onClose, title, children }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!isOpen) return;
+
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handler);
+
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
+    // שמירת האלמנט שהיה ב-focus לפני פתיחה, והעברת פוקוס לתוך הדיאלוג
+    const prevFocused = document.activeElement as HTMLElement | null;
+    const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    firstFocusable?.focus();
+
     return () => {
       document.removeEventListener('keydown', handler);
       document.body.style.overflow = prevOverflow;
+      // החזרת פוקוס לטריגר שפתח את המודאל (אם עוד קיים ב-DOM)
+      prevFocused?.focus?.();
     };
   }, [isOpen, onClose]);
 
@@ -48,7 +63,10 @@ export function Modal({ isOpen, onClose, title, children }: Props) {
       />
 
       {/* תוכן */}
-      <div className="relative w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white shadow-soft-lg border border-brand-100/60 animate-in slide-in-from-bottom-4">
+      <div
+        ref={dialogRef}
+        className="relative w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white shadow-soft-lg border border-brand-100/60 animate-in slide-in-from-bottom-4"
+      >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-brand-100/60 bg-white/95 backdrop-blur px-5 py-3">
           <h2 id="modal-title" className="font-semibold text-brand-700">
             {title}

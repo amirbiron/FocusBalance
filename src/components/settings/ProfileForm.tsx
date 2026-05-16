@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Plus, X, Clock, Check } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -33,6 +33,17 @@ export function ProfileForm({ user, onSave }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  // שמירה של ה-timeout כדי לבטל בעת unmount או שמירה חוזרת — מונע
+  // הסתרה מוקדמת של ההודעה ועדכון state על קומפוננטה שכבר אינה במסך
+  const savedTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current !== null) {
+        window.clearTimeout(savedTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -80,7 +91,10 @@ export function ProfileForm({ user, onSave }: Props) {
         doctorName: doctorName.trim() || undefined,
       });
       setSavedAt(Date.now());
-      window.setTimeout(() => setSavedAt(null), 2500);
+      if (savedTimerRef.current !== null) {
+        window.clearTimeout(savedTimerRef.current);
+      }
+      savedTimerRef.current = window.setTimeout(() => setSavedAt(null), 2500);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'שמירה נכשלה';
       setErrors({ submit: msg });

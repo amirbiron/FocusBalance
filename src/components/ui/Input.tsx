@@ -1,4 +1,4 @@
-import { forwardRef, type InputHTMLAttributes } from 'react';
+import { forwardRef, useId, type InputHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -10,8 +10,12 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 /** רכיב קלט נגיש עם תווית, רמז ושגיאה. */
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, hint, error, className, id, ...rest }, ref) => {
-    const inputId = id ?? `input-${Math.random().toString(36).slice(2, 9)}`;
-    const hintId = hint ? `${inputId}-hint` : undefined;
+    // useId נותן מזהה יציב בין רנדורים (במקום Math.random שיוצר חדש בכל פעם)
+    const generatedId = useId();
+    const inputId = id ?? generatedId;
+    // הצגת hint רק כשאין error — לכן גם ה-id נחשף ב-aria רק במקרה הזה
+    const showHint = Boolean(hint) && !error;
+    const hintId = showHint ? `${inputId}-hint` : undefined;
     const errorId = error ? `${inputId}-error` : undefined;
 
     return (
@@ -38,7 +42,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           {...rest}
         />
-        {hint && !error && (
+        {showHint && (
           <p id={hintId} className="text-xs text-slate-500">
             {hint}
           </p>

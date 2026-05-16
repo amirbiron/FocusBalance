@@ -13,7 +13,9 @@ interface Props {
  * Gamification עדינה — חיזוק חיובי בלי לחץ.
  */
 export function StreakCard({ user }: Props) {
-  const events = useLiveQuery(() => getRecentDays(60), [], []);
+  // 365 ימים — תואם לתקרה הפנימית של calculateStreak כדי שרצף ארוך
+  // לא ייקטע ע"י חלון השאילתה
+  const events = useLiveQuery(() => getRecentDays(365), [], []);
   const byDay = aggregateByDay(events);
   const streak = calculateStreak(byDay, user.prescribedDailyDose);
 
