@@ -59,7 +59,7 @@ export function MonthCalendar({
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startDayOfWeek = firstOfMonth.getDay(); // 0=Sunday=ראשון
 
-  // 6 שורות × 7 ימים = 42 תאים, ימים ריקים בהתחלה ובסוף
+  // 6 שורות × 7 ימים = 42 תאים תמיד, כדי לשמור גובה לוח קבוע בין חודשים
   const cells: Array<{ day: number | null; dateKey: string | null }> = [];
   for (let i = 0; i < startDayOfWeek; i++) {
     cells.push({ day: null, dateKey: null });
@@ -68,8 +68,11 @@ export function MonthCalendar({
     const date = new Date(year, month, d);
     cells.push({ day: d, dateKey: localDateKey(date) });
   }
-  while (cells.length % 7 !== 0) {
+  while (cells.length < 42) {
     cells.push({ day: null, dateKey: null });
+  }
+  if (cells.length > 42) {
+    cells.length = 42;
   }
 
   const todayKey = localDateKey(new Date());
