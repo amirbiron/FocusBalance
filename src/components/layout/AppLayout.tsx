@@ -3,6 +3,7 @@ import { TopBar } from './TopBar';
 import { BottomNav } from './BottomNav';
 import { QuickLogFab } from './QuickLogFab';
 import { Footer } from './Footer';
+import { QuickLogModal } from '../quicklog/QuickLogModal';
 
 /**
  * הפריסה הראשית של האפליקציה.
@@ -20,6 +21,7 @@ export function AppLayout() {
       <QuickLogFab />
       <BottomNav />
       <Footer />
+      <QuickLogModal />
     </div>
   );
 }
