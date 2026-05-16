@@ -47,7 +47,16 @@ export function isPlannedDose(timestampIso: string, scheduledTimes: string[]): b
 
 /** "HH:MM" של עכשיו, להזנה ל-time picker */
 export function nowAsTimeString(): string {
-  const d = new Date();
+  return formatTimeHHMM(new Date());
+}
+
+/**
+ * "HH:MM" של תאריך נתון לפי השעון המקומי, להזנה ל-input[type=time].
+ * אסור להשתמש ב-toLocaleTimeString('he-IL', ...) כי הוא עלול להחזיר
+ * סימני כיוון נסתרים (RLM/LRM) שיגרמו לקלט להופיע ריק ול-Number()
+ * להחזיר NaN בעת הניתוח.
+ */
+export function formatTimeHHMM(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

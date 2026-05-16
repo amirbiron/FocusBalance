@@ -82,3 +82,38 @@ export async function getRecentDays(days: number): Promise<DoseEvent[]> {
   start.setDate(start.getDate() - (days - 1));
   return getDoseEventsInRange(start.toISOString(), end.toISOString());
 }
+
+/**
+ * מחזיר אירועים של חודש קלנדרי שלם, מסונן לפי שעון מקומי.
+ * year — שנה ארבע-ספרתית, month — אינדקס 0-11 (כמו ב-Date של JS).
+ */
+export async function getDoseEventsForMonth(year: number, month: number): Promise<DoseEvent[]> {
+  if (!Number.isInteger(year) || !Number.isFinite(year)) {
+    throw new Error('שנה לא תקינה');
+  }
+  if (!Number.isInteger(month) || month < 0 || month > 11) {
+    throw new Error('חודש לא תקין');
+  }
+  const start = new Date(year, month, 1, 0, 0, 0, 0);
+  const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+  return getDoseEventsInRange(start.toISOString(), end.toISOString());
+}
+
+/** מחזיר אירועים של תאריך לוקאלי ספציפי (YYYY-MM-DD) */
+export async function getDoseEventsForDay(localDateKey: string): Promise<DoseEvent[]> {
+  const parts = localDateKey.split('-');
+  if (parts.length !== 3) throw new Error('תאריך לא תקין');
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const d = Number(parts[2]);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) {
+    throw new Error('תאריך לא תקין');
+  }
+  if (m < 1 || m > 12) throw new Error('חודש לא תקין');
+  // ולידציה כולל שנים מעוברות — daysInMonth של החודש המבוקש
+  const daysInMonth = new Date(y, m, 0).getDate();
+  if (d < 1 || d > daysInMonth) throw new Error('יום לא תקין');
+  const start = new Date(y, m - 1, d, 0, 0, 0, 0);
+  const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+  return getDoseEventsInRange(start.toISOString(), end.toISOString());
+}
